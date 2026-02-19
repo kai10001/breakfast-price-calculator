@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#FF6B35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="美而美計算機">
+<link rel="manifest" href="manifest.json">
+<title>美而美早餐 計算機</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #1A1209;
+    --surface: #261A0A;
+    --surface2: #321F0C;
+    --accent: #FF6B35;
+    --accent2: #FFB347;
+    --text: #FFF3E0;
+    --text2: #C4956A;
+    --text3: #7A5C3A;
+    --border: #3D2810;
+    --green: #4CAF7D;
+    --red: #E05252;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .store-name {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  .total-bar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .total-label {
+    font-size: 13px;
+    color: var(--text2);
+    font-weight: 500;
+  }
+
+  .total-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--accent2);
+  }
+
+  .total-amount span {
+    font-size: 14px;
+    color: var(--text2);
+  }
+
+  .btn-clear {
+    background: transparent;
+    border: 1px solid var(--red);
+    color: var(--red);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-clear:active { background: var(--red); color: white; transform: scale(0.95); }
+
+  /* Category tabs */
+  .tabs-wrapper {
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 10px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    -ms-overflow-style: none;
+  }
+  .tabs-wrapper::-webkit-scrollbar { display: none; }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    width: max-content;
+  }
+
+  .tab {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .tab:active { transform: scale(0.95); }
+
+  /* Menu items */
+  .menu-section {
+    padding: 12px 16px;
+    display: none;
+  }
+  .menu-section.active { display: block; }
+
+  .section-note {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    background: var(--surface);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent2);
+  }
+
+  .item-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .item-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+
+  .item-card.has-qty {
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+
+  .item-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .item-price {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  .item-price::before { content: '$'; font-size: 11px; }
+
+  .qty-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 2px;
+  }
+
+  .qty-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: none;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    line-height: 1;
+  }
+
+  .qty-btn.minus {
+    background: var(--border);
+    color: var(--text2);
+  }
+
+  .qty-btn.plus {
+    background: var(--accent);
+    color: white;
+  }
+
+  .qty-btn:active { transform: scale(0.88); }
+
+  .qty-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text);
+    min-width: 24px;
+    text-align: center;
+  }
+
+  /* Cart summary */
+  .cart-section {
+    display: none;
+    padding: 16px;
+  }
+  .cart-section.active { display: block; }
+
+  .cart-empty {
+    text-align: center;
+    color: var(--text3);
+    padding: 60px 20px;
+    font-size: 14px;
+  }
+  .cart-empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+  .cart-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cart-item-info { flex: 1; }
+  .cart-item-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .cart-item-detail { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+
+  .cart-item-subtotal {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  .cart-total-row {
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .cart-total-label { font-size: 15px; font-weight: 700; color: var(--text2); }
+  .cart-total-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+    z-index: 100;
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 10px;
+    transition: color 0.15s;
+    position: relative;
+  }
+
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn .icon { font-size: 22px; line-height: 1; }
+
+  .cart-badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 18px);
+    background: var(--red);
+    color: white;
+    border-radius: 10px;
+    font-size: 10px;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    display: none;
+  }
+
+  .cart-badge.show { display: flex; }
+
+  /* Main content padding for bottom nav */
+  .main-content { padding-bottom: 80px; }
+
+  /* Quick add animation */
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  .pop { animation: pop 0.2s ease; }
+
+  /* Offline indicator */
+  .offline-bar {
+    background: var(--red);
+    color: white;
+    text-align: center;
+    font-size: 11px;
+    padding: 4px;
+    display: none;
+  }
+  .offline-bar.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="offline-bar" id="offlineBar">⚡ 離線模式</div>
+
+<div class="header">
+  <div class="header-top">
+    <div class="store-name">🍳 美而美 南興店</div>
+    <button class="btn-clear" onclick="clearAll()">清空</button>
+  </div>
+  <div class="total-bar">
+    <div>
+      <div class="total-label">目前總金額</div>
+    </div>
+    <div class="total-amount"><span>$</span><span id="totalAmount">0</span></div>
+  </div>
+</div>
+
+<div class="tabs-wrapper" id="tabsWrapper">
+  <div class="tabs" id="tabsContainer"></div>
+</div>
+
+<div class="main-content" id="mainContent"></div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="navMenu" onclick="switchView('menu')">
+    <span class="icon">🍽️</span>
+    點餐
+  </button>
+  <button class="nav-btn" id="navCart" onclick="switchView('cart')">
+    <span class="icon">🧾</span>
+    <span class="cart-badge" id="cartBadge">0</span>
+    明細
+  </button>
+</nav>
+
+<script>
+// ===== 菜單資料 =====
+const MENU = [
+  {
+    id: 'burger', label: '🥪 漢堡', note: '加蛋 +$15｜加起司 +$10',
+    items: [
+      { name: '漢堡', price: 25 }, { name: '蛋堡', price: 30 }, { name: '鮪魚堡', price: 25 },
+      { name: '雞肉堡', price: 30 }, { name: '燻雞堡', price: 30 }, { name: '花枝堡', price: 35 },
+      { name: '鱈魚堡', price: 35 }, { name: '蝦肉堡', price: 35 }, { name: '豬排堡', price: 35 },
+      { name: '香烤雞腿堡', price: 35 }, { name: '菲力雞腿堡', price: 35 },
+      { name: '咔啦雞腿堡（原味）', price: 45 }, { name: '咔啦雞腿堡（辣味）', price: 45 },
+      { name: '加蛋', price: 15 }, { name: '加起司', price: 10 },
+    ]
+  },
+  {
+    id: 'toast', label: '🍞 烤吐司', note: '升級丹麥吐司 +$20',
+    items: [
+      { name: '巧克力吐司', price: 10 }, { name: '草莓吐司', price: 10 }, { name: '花生吐司', price: 10 },
+      { name: '奶油吐司', price: 10 }, { name: '煉乳吐司', price: 10 }, { name: '奶酥吐司', price: 15 },
+      { name: '肉鬆吐司', price: 15 }, { name: '玉米吐司', price: 15 }, { name: '火腿吐司', price: 15 },
+      { name: '燻雞吐司', price: 20 }, { name: '培根吐司', price: 20 }, { name: '鮪魚吐司', price: 20 },
+      { name: '煎蛋吐司', price: 25 }, { name: '法國吐司', price: 30 }, { name: '豬排吐司', price: 30 },
+      { name: '鱈魚吐司', price: 35 }, { name: '花枝吐司', price: 35 },
+      { name: '咔啦雞腿吐司（原味）', price: 45 }, { name: '咔啦雞腿吐司（辣味）', price: 45 },
+      { name: '升級丹麥', price: 20 },
+    ]
+  },
+  {
+    id: 'egg', label: '🥞 蛋餅',
+    items: [
+      { name: '原味蛋餅', price: 25 }, { name: '肉鬆蛋餅', price: 30 }, { name: '火腿蛋餅', price: 30 },
+      { name: '玉米蛋餅', price: 30 }, { name: '蔬菜蛋餅', price: 30 }, { name: '起司蛋餅', price: 35 },
+      { name: '熱狗蛋餅', price: 35 }, { name: '培根蛋餅', price: 35 }, { name: '鮪魚蛋餅', price: 35 },
+      { name: '燻雞蛋餅', price: 40 }, { name: '泡菜蛋餅', price: 40 }, { name: '蘿蔔糕蛋餅', price: 40 },
+      { name: '豬排蛋餅', price: 45 }, { name: '菲力雞腿蛋餅', price: 50 }, { name: '咔啦雞腿蛋餅', price: 60 },
+    ]
+  },
+  {
+    id: 'thick', label: '🍞 厚片',
+    items: [
+      { name: '巧克力厚片', price: 20 }, { name: '花生厚片', price: 20 }, { name: '草莓厚片', price: 20 },
+      { name: '奶酥厚片', price: 20 }, { name: '奶油厚片', price: 20 }, { name: '煉乳厚片', price: 20 },
+      { name: '火腿玉米厚片', price: 30 }, { name: '玉米起司厚片', price: 35 },
+      { name: '鮪魚玉米厚片', price: 35 }, { name: '鮪魚起司厚片', price: 40 },
+    ]
+  },
+  {
+    id: 'box', label: '🧇 盒酥',
+    items: [
+      { name: '巧克力盒酥', price: 20 }, { name: '草莓盒酥', price: 20 }, { name: '花生盒酥', price: 20 },
+      { name: '奶油盒酥', price: 20 }, { name: '煉乳盒酥', price: 20 }, { name: '奶酥盒酥', price: 20 },
+      { name: '火腿盒酥', price: 20 }, { name: '玉米盒酥', price: 25 }, { name: '起司盒酥', price: 25 },
+      { name: '鮪魚盒酥', price: 25 }, { name: '玉米鮪魚盒酥', price: 30 }, { name: '玉米起司盒酥', price: 30 },
+      { name: '鮪魚起司盒酥', price: 35 }, { name: '燻雞盒酥', price: 30 }, { name: '薯皮盒酥', price: 45 },
+    ]
+  },
+  {
+    id: 'club', label: '🌯 總匯',
+    items: [
+      { name: '豬排總匯', price: 60 }, { name: '總匯吐司', price: 55 },
+      { name: '咔啦雞腿總匯', price: 65 }, { name: '菲力雞腿總匯', price: 65 },
+    ]
+  },
+  {
+    id: 'fried', label: '🍟 現炸',
+    items: [
+      { name: '香酥雞柳條', price: 10 }, { name: '薯餅', price: 15 }, { name: '薯條', price: 20 },
+      { name: '麥克雞塊', price: 25 }, { name: '小雞球', price: 25 },
+    ]
+  },
+  {
+    id: 'light', label: '🌮 輕食',
+    items: [
+      { name: '果醬鬆餅（巧克力）', price: 25 }, { name: '果醬鬆餅（草莓）', price: 25 },
+      { name: '果醬鬆餅（花生）', price: 25 }, { name: '果醬鬆餅（奶酥）', price: 25 },
+      { name: '果醬鬆餅（煉乳）', price: 25 }, { name: '蔬菜乳酪餅', price: 30 },
+      { name: '蛋肉鬆乳酪餅', price: 45 }, { name: '鮪魚玉米乳酪餅', price: 40 },
+    ]
+  },
+  {
+    id: 'hot', label: '🌭 熱食',
+    items: [
+      { name: '熱狗（3條）', price: 15 }, { name: '熱狗吐司蛋捲', price: 25 }, { name: '熱狗捲蛋（3條）', price: 30 },
+      { name: '蔥蛋', price: 15 }, { name: '玉米蛋', price: 25 }, { name: '小肉豆', price: 20 },
+      { name: '蘿蔔糕（2塊）', price: 25 }, { name: '蘿蔔糕（1塊）', price: 15 },
+      { name: '生煎包', price: 25 }, { name: '一口煎餃', price: 20 }, { name: '鍋貼', price: 25 },
+      { name: '香酥煎餃', price: 30 },
+    ]
+  },
+  {
+    id: 'noodle', label: '🍜 鍋燒麵',
+    items: [
+      { name: '意麵', price: 55 }, { name: '冬粉', price: 55 }, { name: '雞絲麵', price: 55 }, { name: '烏龍麵', price: 55 },
+      { name: '泡菜意麵', price: 70 }, { name: '泡菜冬粉', price: 70 }, { name: '泡菜雞絲麵', price: 70 }, { name: '泡菜烏龍麵', price: 70 },
+    ]
+  },
+  {
+    id: 'instant', label: '🍜 泡麵',
+    items: [
+      { name: '泡菜泡麵', price: 70 }, { name: '肉燥泡麵', price: 55 }, { name: '牛肉湯泡麵', price: 55 },
+    ]
+  },
+  {
+    id: 'pasta', label: '🍝 義大利麵',
+    items: [
+      { name: '茄汁義大利麵', price: 40 }, { name: '黑胡椒義大利麵', price: 40 },
+    ]
+  },
+  {
+    id: 'porridge', label: '🍲 粥品',
+    items: [
+      { name: '台式鹹粥', price: 50 }, { name: '皮蛋瘦肉粥', price: 60 },
+    ]
+  },
+  {
+    id: 'meat', label: '🥩 肉排單點',
+    items: [
+      { name: '漢堡肉', price: 10 }, { name: '燻雞肉', price: 15 }, { name: '豬排', price: 20 },
+      { name: '香烤雞腿', price: 25 }, { name: '菲力雞排', price: 25 }, { name: '鱈魚', price: 25 },
+      { name: '蝦肉', price: 25 }, { name: '花枝', price: 25 }, { name: '咔啦雞腿肉', price: 35 },
+    ]
+  },
+  {
+    id: 'drink', label: '🥤 飲料', note: '升級大杯 +$5',
+    items: [
+      { name: '紅茶', price: 10 }, { name: '豆漿', price: 10 }, { name: '奶茶', price: 15 },
+      { name: '咖啡牛奶', price: 15 }, { name: '可可', price: 15 }, { name: '冰可樂', price: 15 },
+      { name: '柳橙汁', price: 15 }, { name: '檸檬紅茶', price: 15 }, { name: '水蜜桃汁', price: 15 },
+      { name: '百香果汁', price: 15 }, { name: '鮮奶茶', price: 20 }, { name: '鮮奶咖啡（大杯）', price: 30 },
+      { name: '升級大杯', price: 5 },
+    ]
+  },
+  {
+    id: 'winter', label: '❄️ 冬季限定',
+    items: [
+      { name: '玉米濃湯（小杯）', price: 15 }, { name: '玉米濃湯（大杯）', price: 25 },
+    ]
+  },
+];
+
+// ===== 狀態 =====
+const qty = {}; // itemKey -> quantity
+let currentView = 'menu';
+let currentTab = MENU[0].id;
+
+// ===== 計算 =====
+function getKey(catId, itemName) { return `${catId}__${itemName}`; }
+
+function getTotal() {
+  return Object.entries(qty).reduce((sum, [key, q]) => {
+    const [catId, itemName] = key.split('__');
+    const cat = MENU.find(c => c.id === catId);
+    if (!cat) return sum;
+    const item = cat.items.find(i => i.name === itemName);
+    if (!item) return sum;
+    return sum + item.price * q;
+  }, 0);
+}
+
+function getCartItems() {
+  return Object.entries(qty)
+    .filter(([_, q]) => q > 0)
+    .map(([key, q]) => {
+      const [catId, itemName] = key.split('__');
+      const cat = MENU.find(c => c.id === catId);
+      const item = cat.items.find(i => i.name === itemName);
+      return { catId, itemName, price: item.price, qty: q, subtotal: item.price * q };
+    });
+}
+
+function getTotalItemCount() {
+  return Object.values(qty).reduce((s, q) => s + q, 0);
+}
+
+// ===== UI 更新 =====
+function updateTotal() {
+  document.getElementById('totalAmount').textContent = getTotal();
+}
+
+function updateBadge() {
+  const count = getTotalItemCount();
+  const badge = document.getElementById('cartBadge');
+  if (count > 0) {
+    badge.textContent = count > 99 ? '99+' : count;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+}
+
+function setQty(catId, itemName, val) {
+  const key = getKey(catId, itemName);
+  qty[key] = Math.max(0, val);
+  updateTotal();
+  updateBadge();
+  // Update the specific card
+  const card = document.querySelector(`[data-key="${key}"]`);
+  if (card) {
+    const display = card.querySelector('.qty-display');
+    if (display) display.textContent = qty[key];
+    if (qty[key] > 0) card.classList.add('has-qty');
+    else card.classList.remove('has-qty');
+  }
+}
+
+// ===== 渲染菜單 =====
+function renderMenu() {
+  const tabsContainer = document.getElementById('tabsContainer');
+  const mainContent = document.getElementById('mainContent');
+
+  // 標籤
+  tabsContainer.innerHTML = MENU.map(cat => `
+    <button class="tab ${cat.id === currentTab ? 'active' : ''}" onclick="switchTab('${cat.id}')">${cat.label}</button>
+  `).join('');
+
+  // 內容
+  mainContent.innerHTML = MENU.map(cat => `
+    <div class="menu-section ${cat.id === currentTab ? 'active' : ''}" id="section-${cat.id}">
+      ${cat.note ? `<div class="section-note">📌 ${cat.note}</div>` : ''}
+      <div class="item-grid">
+        ${cat.items.map(item => {
+          const key = getKey(cat.id, item.name);
+          const q = qty[key] || 0;
+          return `
+          <div class="item-card ${q > 0 ? 'has-qty' : ''}" data-key="${key}">
+            <div class="item-name">${item.name}</div>
+            <div class="item-price">${item.price}</div>
+            <div class="qty-controls">
+              <button class="qty-btn minus" onclick="setQty('${cat.id}', '${item.name.replace(/'/g, "\\'")}', ${q - 1})">−</button>
+              <span class="qty-display">${q}</span>
+              <button class="qty-btn plus" onclick="setQty('${cat.id}', '${item.name.replace(/'/g, "\\'")}', ${q + 1})">+</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCart() {
+  const mainContent = document.getElementById('mainContent');
+  const cartItems = getCartItems();
+  const total = getTotal();
+
+  if (cartItems.length === 0) {
+    mainContent.innerHTML = `
+      <div class="cart-section active">
+        <div class="cart-empty">
+          <div class="cart-empty-icon">🛒</div>
+          <div>尚未點餐</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  mainContent.innerHTML = `
+    <div class="cart-section active">
+      ${cartItems.map(ci => `
+        <div class="cart-item">
+          <div class="cart-item-info">
+            <div class="cart-item-name">${ci.itemName}</div>
+            <div class="cart-item-detail">$${ci.price} × ${ci.qty}</div>
+          </div>
+          <div class="cart-item-subtotal">$${ci.subtotal}</div>
+        </div>
+      `).join('')}
+      <div class="cart-total-row">
+        <div class="cart-total-label">合計</div>
+        <div class="cart-total-amount">$${total}</div>
+      </div>
+    </div>`;
+}
+
+function switchTab(tabId) {
+  currentTab = tabId;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.menu-section').forEach(s => s.classList.remove('active'));
+  const activeTab = document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`);
+  if (activeTab) {
+    activeTab.classList.add('active');
+    activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+  const section = document.getElementById(`section-${tabId}`);
+  if (section) section.classList.add('active');
+}
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById('navMenu').classList.toggle('active', view === 'menu');
+  document.getElementById('navCart').classList.toggle('active', view === 'cart');
+  document.getElementById('tabsWrapper').style.display = view === 'menu' ? 'block' : 'none';
+
+  if (view === 'menu') {
+    renderMenu();
+  } else {
+    renderCart();
+  }
+}
+
+function clearAll() {
+  if (!confirm('確定要清空所有品項？')) return;
+  Object.keys(qty).forEach(k => delete qty[k]);
+  updateTotal();
+  updateBadge();
+  if (currentView === 'menu') renderMenu();
+  else renderCart();
+}
+
+// ===== 初始化 =====
+function init() {
+  renderMenu();
+
