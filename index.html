@@ -1,1011 +1,650 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#FF6B35">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="美而美計算機">
-<link rel="manifest" href="manifest.json">
-<title>美而美早餐 計算機</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>美而美早餐（南興店）- 智慧點餐系統</title>
+    <style>
+        :root {
+            --primary: #f39c12;
+            --secondary: #d35400;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --light-gray: #e9ecef;
+            --border-color: #e0e0e0;
+        }
 
-  :root {
-    --bg: #1A1209;
-    --surface: #261A0A;
-    --surface2: #321F0C;
-    --accent: #FF6B35;
-    --accent2: #FFB347;
-    --text: #FFF3E0;
-    --text2: #C4956A;
-    --text3: #7A5C3A;
-    --border: #3D2810;
-    --green: #4CAF7D;
-    --red: #E05252;
-    --shadow: 0 4px 24px rgba(0,0,0,0.5);
-  }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            /* 預設手機版防捲動抖動 */
+            overflow-x: hidden;
+        }
 
-  body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+        /* 系統主要架構 */
+        .app-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
 
-  /* Header */
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 16px;
-  }
+        /* 左側主畫面區塊 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding-top: 110px; /* 手機版 Header 空間 */
+            padding-bottom: 70px; /* 手機版 Bottom Bar 空間 */
+        }
 
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
+        /* 頂部區塊 (手機版固定，平板靜態) */
+        .header-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            background: #fff;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
 
-  .store-name {
-    font-size: 18px;
-    font-weight: 900;
-    color: var(--accent);
-    letter-spacing: 0.05em;
-  }
+        header {
+            background-color: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
 
-  .total-bar {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
+        /* 分類標籤 */
+        .category-tabs {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 15px;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+        .category-tabs::-webkit-scrollbar { display: none; }
+        .category-tab {
+            padding: 8px 16px;
+            margin-right: 10px;
+            background: var(--light-gray);
+            color: #555;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .category-tab.active { background: var(--secondary); color: white; }
 
-  .total-label {
-    font-size: 13px;
-    color: var(--text2);
-    font-weight: 500;
-  }
+        /* 餐點列表 */
+        .item-list {
+            padding: 10px 15px;
+            flex: 1;
+        }
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 15px;
+            margin-bottom: 12px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        .menu-item:active { transform: scale(0.98); background: #fafafa; }
+        .item-name { font-weight: 600; color: #222; line-height: 1.4; }
+        .item-price { color: var(--secondary); font-weight: 700; font-size: 1.15rem; }
 
-  .total-amount {
-    font-family: 'DM Mono', monospace;
-    font-size: 26px;
-    font-weight: 500;
-    color: var(--accent2);
-  }
+        /* 右側購物車 (平板/電腦專用，預設隱藏) */
+        .desktop-cart { display: none; }
 
-  .total-amount span {
-    font-size: 14px;
-    color: var(--text2);
-  }
+        /* 底部懸浮購物車列 (手機專用) */
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 65px;
+            background: var(--text); color: white;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; font-size: 1.1rem; z-index: 20; cursor: pointer;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .cart-info { display: flex; align-items: center; gap: 10px; }
+        .cart-badge {
+            background: var(--primary); color: white; border-radius: 50%;
+            width: 28px; height: 28px; display: flex; justify-content: center; align-items: center;
+            font-size: 0.9rem; font-weight: bold;
+        }
+        .bottom-total { font-weight: bold; font-size: 1.3rem; }
 
-  .btn-clear {
-    background: transparent;
-    border: 1px solid var(--red);
-    color: var(--red);
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-family: 'Noto Sans TC', sans-serif;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
+        /* 共用 Modal 遮罩 */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 100;
+            flex-direction: column; justify-content: flex-end; /* 手機版從底部 */
+        }
+        
+        /* 加料與數量 Modal (手機版 Bottom Sheet) */
+        .bottom-sheet {
+            background: white; padding: 25px 20px 35px 20px;
+            border-radius: 20px 20px 0 0;
+            animation: slideUp 0.3s ease-out forwards;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-  .btn-clear:active { background: var(--red); color: white; transform: scale(0.95); }
+        .modal-title { font-size: 1.4rem; font-weight: bold; margin-bottom: 20px; color: var(--secondary); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        .addon-group { margin-bottom: 20px; max-height: 30vh; overflow-y: auto; }
+        .addon-label { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 1.1rem; cursor: pointer; }
+        .addon-label input { margin-right: 12px; transform: scale(1.3); }
 
-  /* Category tabs */
-  .tabs-wrapper {
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding: 10px 16px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    -ms-overflow-style: none;
-  }
-  .tabs-wrapper::-webkit-scrollbar { display: none; }
+        .qty-group { display: flex; justify-content: center; align-items: center; margin: 25px 0; gap: 20px; }
+        .qty-btn { background: var(--light-gray); border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.5rem; color: #555; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .qty-input { width: 50px; text-align: center; font-size: 1.5rem; border: none; background: transparent; font-weight: bold; }
 
-  .tabs {
-    display: flex;
-    gap: 8px;
-    width: max-content;
-  }
+        .modal-actions { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+        .btn-cancel { background: var(--light-gray); color: #555; }
+        .btn-confirm { background: var(--primary); color: white; }
 
-  .tab {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-family: 'Noto Sans TC', sans-serif;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-    font-weight: 500;
-  }
+        /* 購物車 Modal (手機版專用) */
+        .cart-modal {
+            background: var(--bg-color); height: 90vh; border-radius: 20px 20px 0 0;
+            display: flex; flex-direction: column; animation: slideUp 0.3s ease-out forwards;
+        }
+        .cart-header { padding: 20px; background: white; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; border-radius: 20px 20px 0 0; }
+        .cart-title { font-size: 1.3rem; font-weight: bold; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; color: #888; padding: 0 10px; cursor: pointer; }
+        
+        .cart-items { flex: 1; overflow-y: auto; padding: 15px; }
+        .cart-item { background: white; padding: 15px; margin-bottom: 12px; border-radius: 12px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .cart-item-title { font-weight: bold; font-size: 1.1rem; padding-right: 50px; line-height: 1.3; }
+        .cart-item-details { font-size: 0.9rem; color: #777; margin-top: 6px; }
+        .cart-item-price { font-weight: bold; color: var(--secondary); margin-top: 8px; font-size: 1.1rem;}
+        .remove-btn { position: absolute; top: 15px; right: 15px; background: #ffebe6; color: #e74c3c; border: none; border-radius: 8px; padding: 6px 12px; font-size: 0.9rem; font-weight: bold; cursor: pointer; }
 
-  .tab.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-  }
+        .cart-footer { background: white; padding: 20px; border-top: 1px solid #eee; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .cart-total-row { display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; }
+        .copy-btn { width: 100%; background: #2ecc71; color: white; padding: 15px; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer; }
+        .clear-btn { width: 100%; background: transparent; color: #999; padding: 10px; border: none; margin-top: 10px; font-size: 1rem; cursor: pointer; }
 
-  .tab:active { transform: scale(0.95); }
 
-  /* Menu items */
-  .menu-section {
-    padding: 12px 16px;
-    display: none;
-  }
-  .menu-section.active { display: block; }
+        /* =========================================
+           平板與電腦版深度最佳化 (min-width: 768px) 
+           ========================================= */
+        @media (min-width: 768px) {
+            body { 
+                height: 100vh; /* 鎖定全局滾動，由內部區塊自帶滾動 */
+                overflow: hidden; 
+            }
+            .app-wrapper { 
+                flex-direction: row; /* 左右分貝設計 */
+                height: 100vh;
+            }
+            
+            /* 左側餐點區 */
+            .main-content {
+                padding: 0; 
+                flex: 1;
+                height: 100vh;
+                background: var(--bg-color);
+            }
+            
+            /* 頂部解除 Fixed，隨佈局自然流動 */
+            .header-container { 
+                position: static; 
+                box-shadow: none; 
+                border-bottom: 1px solid var(--border-color);
+                flex-shrink: 0;
+            }
+            header { font-size: 1.4rem; padding: 15px; }
+            
+            /* 【重點】分類標籤自動換行，不需橫向滑動 */
+            .category-tabs { 
+                flex-wrap: wrap; 
+                padding: 15px; 
+                gap: 8px; 
+                height: auto;
+                background: #fff;
+            }
+            .category-tab { margin: 0; font-size: 1rem; padding: 10px 18px; }
+            .category-tab:hover { background: #e0e0e0; }
+            .category-tab.active:hover { background: var(--secondary); }
 
-  .section-note {
-    font-size: 11px;
-    color: var(--text3);
-    margin-bottom: 10px;
-    padding: 6px 10px;
-    background: var(--surface);
-    border-radius: 8px;
-    border-left: 3px solid var(--accent2);
-  }
+            /* 【重點】網格化餐點卡片，提升螢幕資訊密度 */
+            .item-list { 
+                flex: 1; 
+                overflow-y: auto; 
+                display: grid; 
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+                gap: 15px; 
+                align-content: start; 
+                padding: 20px; 
+            }
+            .menu-item { 
+                margin-bottom: 0; 
+                flex-direction: column; 
+                align-items: flex-start; 
+                justify-content: space-between;
+                height: 120px; 
+                padding: 15px;
+            }
+            .menu-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--primary); transform: translateY(-2px); }
+            .item-name { font-size: 1.2rem; }
+            .item-price { align-self: flex-start; font-size: 1.25rem; }
 
-  .item-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
+            /* 【重點】右側常駐購物車面板 */
+            .desktop-cart { 
+                display: flex; 
+                flex-direction: column; 
+                width: 380px; 
+                background: white; 
+                border-left: 1px solid var(--border-color);
+                box-shadow: -2px 0 15px rgba(0,0,0,0.03);
+                z-index: 5;
+            }
+            .desktop-cart-header {
+                padding: 20px; background: var(--primary); color: white;
+                font-size: 1.3rem; font-weight: bold; text-align: center;
+            }
+            
+            /* 隱藏手機版專用元素 */
+            .bottom-bar { display: none !important; }
 
-  .item-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    position: relative;
-    transition: border-color 0.15s;
-  }
-
-  .item-card.has-qty {
-    border-color: var(--accent);
-    background: var(--surface2);
-  }
-
-  .item-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text);
-    line-height: 1.3;
-  }
-
-  .item-price {
-    font-family: 'DM Mono', monospace;
-    font-size: 15px;
-    color: var(--accent2);
-    font-weight: 500;
-  }
-
-  .item-price::before { content: '$'; font-size: 11px; }
-
-  .qty-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 2px;
-  }
-
-  .qty-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    border: none;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.1s;
-    line-height: 1;
-  }
-
-  .qty-btn.minus {
-    background: var(--border);
-    color: var(--text2);
-  }
-
-  .qty-btn.plus {
-    background: var(--accent);
-    color: white;
-  }
-
-  .qty-btn:active { transform: scale(0.88); }
-
-  .qty-display {
-    font-family: 'DM Mono', monospace;
-    font-size: 17px;
-    font-weight: 500;
-    color: var(--text);
-    min-width: 24px;
-    text-align: center;
-  }
-
-  /* Cart summary */
-  .cart-section {
-    display: none;
-    padding: 16px;
-  }
-  .cart-section.active { display: block; }
-
-  .cart-empty {
-    text-align: center;
-    color: var(--text3);
-    padding: 60px 20px;
-    font-size: 14px;
-  }
-  .cart-empty-icon { font-size: 48px; margin-bottom: 12px; }
-
-  .cart-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .cart-item-info { flex: 1; }
-  .cart-item-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
-  .cart-item-detail { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
-
-  .cart-item-subtotal {
-    font-family: 'DM Mono', monospace;
-    font-size: 16px;
-    color: var(--accent2);
-    font-weight: 500;
-  }
-
-  .cart-total-row {
-    border-top: 1px solid var(--border);
-    padding-top: 14px;
-    margin-top: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .cart-total-label { font-size: 15px; font-weight: 700; color: var(--text2); }
-  .cart-total-amount {
-    font-family: 'DM Mono', monospace;
-    font-size: 32px;
-    color: var(--accent);
-    font-weight: 500;
-  }
-
-  /* Bottom nav */
-  .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    display: flex;
-    padding: 8px 0 env(safe-area-inset-bottom, 8px);
-    z-index: 100;
-  }
-
-  .nav-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    padding: 6px;
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    color: var(--text3);
-    font-family: 'Noto Sans TC', sans-serif;
-    font-size: 10px;
-    transition: color 0.15s;
-    position: relative;
-  }
-
-  .nav-btn.active { color: var(--accent); }
-  .nav-btn .icon { font-size: 22px; line-height: 1; }
-
-  .cart-badge {
-    position: absolute;
-    top: 4px;
-    right: calc(50% - 18px);
-    background: var(--red);
-    color: white;
-    border-radius: 10px;
-    font-size: 10px;
-    min-width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    display: none;
-  }
-
-  .cart-badge.show { display: flex; }
-
-  /* Main content padding for bottom nav */
-  .main-content { padding-bottom: 80px; }
-
-  /* Quick add animation */
-  @keyframes pop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-    100% { transform: scale(1); }
-  }
-
-  .pop { animation: pop 0.2s ease; }
-
-  /* Offline indicator */
-  .offline-bar {
-    background: var(--red);
-    color: white;
-    text-align: center;
-    font-size: 11px;
-    padding: 4px;
-    display: none;
-  }
-  .offline-bar.show { display: block; }
-</style>
+            /* 【重點】加料視窗改為居中彈窗，提升大螢幕體驗 */
+            .modal-overlay { justify-content: center; align-items: center; padding: 20px; }
+            .bottom-sheet { 
+                border-radius: 20px; width: 100%; max-width: 450px; 
+                animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+                transform: scale(0.9); opacity: 0; 
+                padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            }
+            @keyframes popIn { to { transform: scale(1); opacity: 1; } }
+            
+            /* 優化平板視窗內的元素 */
+            .qty-btn { transition: 0.2s; }
+            .qty-btn:hover { background: #ddd; }
+            .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+            .copy-btn:hover { background: #27ae60; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="offline-bar" id="offlineBar">⚡ 離線模式</div>
-
-<div class="header">
-  <div class="header-top">
-    <div class="store-name">🍳 美而美 南興店</div>
-    <button class="btn-clear" onclick="clearAll()">清空</button>
-  </div>
-  <div class="total-bar">
-    <div>
-      <div class="total-label">目前總金額</div>
-    </div>
-    <div class="total-amount"><span>$</span><span id="totalAmount">0</span></div>
-  </div>
-</div>
-
-<div class="tabs-wrapper" id="tabsWrapper">
-  <div class="tabs" id="tabsContainer"></div>
-</div>
-
-<div class="main-content" id="mainContent"></div>
-
-<nav class="bottom-nav">
-  <button class="nav-btn active" id="navMenu" onclick="switchView('menu')">
-    <span class="icon">🍽️</span>
-    點餐
-  </button>
-  <button class="nav-btn" id="navCart" onclick="switchView('cart')">
-    <span class="icon">🧾</span>
-    <span class="cart-badge" id="cartBadge">0</span>
-    明細
-  </button>
-</nav>
-
-<script>
-// ===== 菜單資料 =====
-const MENU = [
-  {
-    id: 'burger', label: '🥪 漢堡', note: '加蛋 +$15｜加起司 +$10',
-    items: [
-      { name: '漢堡', price: 25 }, { name: '蛋堡', price: 30 }, { name: '鮪魚堡', price: 25 },
-      { name: '雞肉堡', price: 30 }, { name: '燻雞堡', price: 30 }, { name: '花枝堡', price: 35 },
-      { name: '鱈魚堡', price: 35 }, { name: '蝦肉堡', price: 35 }, { name: '豬排堡', price: 35 },
-      { name: '香烤雞腿堡', price: 35 }, { name: '菲力雞腿堡', price: 35 },
-      { name: '咔啦雞腿堡（原味）', price: 45 }, { name: '咔啦雞腿堡（辣味）', price: 45 },
-      { name: '加蛋', price: 15 }, { name: '加起司', price: 10 },
-    ]
-  },
-  {
-    id: 'toast', label: '🍞 烤吐司', note: '升級丹麥吐司 +$20',
-    items: [
-      { name: '巧克力吐司', price: 10 }, { name: '草莓吐司', price: 10 }, { name: '花生吐司', price: 10 },
-      { name: '奶油吐司', price: 10 }, { name: '煉乳吐司', price: 10 }, { name: '奶酥吐司', price: 15 },
-      { name: '肉鬆吐司', price: 15 }, { name: '玉米吐司', price: 15 }, { name: '火腿吐司', price: 15 },
-      { name: '燻雞吐司', price: 20 }, { name: '培根吐司', price: 20 }, { name: '鮪魚吐司', price: 20 },
-      { name: '煎蛋吐司', price: 25 }, { name: '法國吐司', price: 30 }, { name: '豬排吐司', price: 30 },
-      { name: '鱈魚吐司', price: 35 }, { name: '花枝吐司', price: 35 },
-      { name: '咔啦雞腿吐司（原味）', price: 45 }, { name: '咔啦雞腿吐司（辣味）', price: 45 },
-      { name: '升級丹麥', price: 20 },
-    ]
-  },
-  {
-    id: 'egg', label: '🥞 蛋餅',
-    items: [
-      { name: '原味蛋餅', price: 25 }, { name: '肉鬆蛋餅', price: 30 }, { name: '火腿蛋餅', price: 30 },
-      { name: '玉米蛋餅', price: 30 }, { name: '蔬菜蛋餅', price: 30 }, { name: '起司蛋餅', price: 35 },
-      { name: '熱狗蛋餅', price: 35 }, { name: '培根蛋餅', price: 35 }, { name: '鮪魚蛋餅', price: 35 },
-      { name: '燻雞蛋餅', price: 40 }, { name: '泡菜蛋餅', price: 40 }, { name: '蘿蔔糕蛋餅', price: 40 },
-      { name: '豬排蛋餅', price: 45 }, { name: '菲力雞腿蛋餅', price: 50 }, { name: '咔啦雞腿蛋餅', price: 60 },
-    ]
-  },
-  {
-    id: 'thick', label: '🍞 厚片',
-    items: [
-      { name: '巧克力厚片', price: 20 }, { name: '花生厚片', price: 20 }, { name: '草莓厚片', price: 20 },
-      { name: '奶酥厚片', price: 20 }, { name: '奶油厚片', price: 20 }, { name: '煉乳厚片', price: 20 },
-      { name: '火腿玉米厚片', price: 30 }, { name: '玉米起司厚片', price: 35 },
-      { name: '鮪魚玉米厚片', price: 35 }, { name: '鮪魚起司厚片', price: 40 },
-    ]
-  },
-  {
-    id: 'box', label: '🧇 盒酥',
-    items: [
-      { name: '巧克力盒酥', price: 20 }, { name: '草莓盒酥', price: 20 }, { name: '花生盒酥', price: 20 },
-      { name: '奶油盒酥', price: 20 }, { name: '煉乳盒酥', price: 20 }, { name: '奶酥盒酥', price: 20 },
-      { name: '火腿盒酥', price: 20 }, { name: '玉米盒酥', price: 25 }, { name: '起司盒酥', price: 25 },
-      { name: '鮪魚盒酥', price: 25 }, { name: '玉米鮪魚盒酥', price: 30 }, { name: '玉米起司盒酥', price: 30 },
-      { name: '鮪魚起司盒酥', price: 35 }, { name: '燻雞盒酥', price: 30 }, { name: '薯皮盒酥', price: 45 },
-    ]
-  },
-  {
-    id: 'club', label: '🌯 總匯',
-    items: [
-      { name: '豬排總匯', price: 60 }, { name: '總匯吐司', price: 55 },
-      { name: '咔啦雞腿總匯', price: 65 }, { name: '菲力雞腿總匯', price: 65 },
-    ]
-  },
-  {
-    id: 'fried', label: '🍟 現炸',
-    items: [
-      { name: '香酥雞柳條', price: 10 }, { name: '薯餅', price: 15 }, { name: '薯條', price: 20 },
-      { name: '麥克雞塊', price: 25 }, { name: '小雞球', price: 25 },
-    ]
-  },
-  {
-    id: 'light', label: '🌮 輕食',
-    items: [
-      { name: '果醬鬆餅（巧克力）', price: 25 }, { name: '果醬鬆餅（草莓）', price: 25 },
-      { name: '果醬鬆餅（花生）', price: 25 }, { name: '果醬鬆餅（奶酥）', price: 25 },
-      { name: '果醬鬆餅（煉乳）', price: 25 }, { name: '蔬菜乳酪餅', price: 30 },
-      { name: '蛋肉鬆乳酪餅', price: 45 }, { name: '鮪魚玉米乳酪餅', price: 40 },
-    ]
-  },
-  {
-    id: 'hot', label: '🌭 熱食',
-    items: [
-      { name: '熱狗（3條）', price: 15 }, { name: '熱狗吐司蛋捲', price: 25 }, { name: '熱狗捲蛋（3條）', price: 30 },
-      { name: '蔥蛋', price: 15 }, { name: '玉米蛋', price: 25 }, { name: '小肉豆', price: 20 },
-      { name: '蘿蔔糕（2塊）', price: 25 }, { name: '蘿蔔糕（1塊）', price: 15 },
-      { name: '生煎包', price: 25 }, { name: '一口煎餃', price: 20 }, { name: '鍋貼', price: 25 },
-      { name: '香酥煎餃', price: 30 },
-    ]
-  },
-  {
-    id: 'noodle', label: '🍜 鍋燒麵',
-    items: [
-      { name: '意麵', price: 55 }, { name: '冬粉', price: 55 }, { name: '雞絲麵', price: 55 }, { name: '烏龍麵', price: 55 },
-      { name: '泡菜意麵', price: 70 }, { name: '泡菜冬粉', price: 70 }, { name: '泡菜雞絲麵', price: 70 }, { name: '泡菜烏龍麵', price: 70 },
-    ]
-  },
-  {
-    id: 'instant', label: '🍜 泡麵',
-    items: [
-      { name: '泡菜泡麵', price: 70 }, { name: '肉燥泡麵', price: 55 }, { name: '牛肉湯泡麵', price: 55 },
-    ]
-  },
-  {
-    id: 'pasta', label: '🍝 義大利麵',
-    items: [
-      { name: '茄汁義大利麵', price: 40 }, { name: '黑胡椒義大利麵', price: 40 },
-    ]
-  },
-  {
-    id: 'porridge', label: '🍲 粥品',
-    items: [
-      { name: '台式鹹粥', price: 50 }, { name: '皮蛋瘦肉粥', price: 60 },
-    ]
-  },
-  {
-    id: 'meat', label: '🥩 肉排單點',
-    items: [
-      { name: '漢堡肉', price: 10 }, { name: '燻雞肉', price: 15 }, { name: '豬排', price: 20 },
-      { name: '香烤雞腿', price: 25 }, { name: '菲力雞排', price: 25 }, { name: '鱈魚', price: 25 },
-      { name: '蝦肉', price: 25 }, { name: '花枝', price: 25 }, { name: '咔啦雞腿肉', price: 35 },
-    ]
-  },
-  {
-    id: 'drink', label: '🥤 飲料', note: '升級大杯 +$5',
-    items: [
-      { name: '紅茶', price: 10 }, { name: '豆漿', price: 10 }, { name: '奶茶', price: 15 },
-      { name: '咖啡牛奶', price: 15 }, { name: '可可', price: 15 }, { name: '冰可樂', price: 15 },
-      { name: '柳橙汁', price: 15 }, { name: '檸檬紅茶', price: 15 }, { name: '水蜜桃汁', price: 15 },
-      { name: '百香果汁', price: 15 }, { name: '鮮奶茶', price: 20 }, { name: '鮮奶咖啡（大杯）', price: 30 },
-      { name: '升級大杯', price: 5 },
-    ]
-  },
-  {
-    id: 'winter', label: '❄️ 冬季限定',
-    items: [
-      { name: '玉米濃湯（小杯）', price: 15 }, { name: '玉米濃湯（大杯）', price: 25 },
-    ]
-  },
-];
-
-// ===== 狀態 =====
-const qty = {}; // itemKey -> quantity
-let currentView = 'menu';
-let currentTab = MENU[0].id;
-
-// ===== 計算 =====
-function getKey(catId, itemName) { return `${catId}__${itemName}`; }
-
-function getTotal() {
-  return Object.entries(qty).reduce((sum, [key, q]) => {
-    const [catId, itemName] = key.split('__');
-    const cat = MENU.find(c => c.id === catId);
-    if (!cat) return sum;
-    const item = cat.items.find(i => i.name === itemName);
-    if (!item) return sum;
-    return sum + item.price * q;
-  }, 0);
-}
-
-function getCartItems() {
-  return Object.entries(qty)
-    .filter(([_, q]) => q > 0)
-    .map(([key, q]) => {
-      const [catId, itemName] = key.split('__');
-      const cat = MENU.find(c => c.id === catId);
-      const item = cat.items.find(i => i.name === itemName);
-      return { catId, itemName, price: item.price, qty: q, subtotal: item.price * q };
-    });
-}
-
-function getTotalItemCount() {
-  return Object.values(qty).reduce((s, q) => s + q, 0);
-}
-
-// ===== UI 更新 =====
-function updateTotal() {
-  document.getElementById('totalAmount').textContent = getTotal();
-}
-
-function updateBadge() {
-  const count = getTotalItemCount();
-  const badge = document.getElementById('cartBadge');
-  if (count > 0) {
-    badge.textContent = count > 99 ? '99+' : count;
-    badge.classList.add('show');
-  } else {
-    badge.classList.remove('show');
-  }
-}
-
-function setQty(catId, itemName, val) {
-  const key = getKey(catId, itemName);
-  qty[key] = Math.max(0, val);
-  updateTotal();
-  updateBadge();
-  // Update the specific card
-  const card = document.querySelector(`[data-key="${key}"]`);
-  if (card) {
-    const display = card.querySelector('.qty-display');
-    if (display) display.textContent = qty[key];
-    if (qty[key] > 0) card.classList.add('has-qty');
-    else card.classList.remove('has-qty');
-  }
-}
-
-// ===== 渲染菜單 =====
-function renderMenu() {
-  const tabsContainer = document.getElementById('tabsContainer');
-  const mainContent = document.getElementById('mainContent');
-
-  // 標籤
-  tabsContainer.innerHTML = MENU.map(cat => `
-    <button class="tab ${cat.id === currentTab ? 'active' : ''}" onclick="switchTab('${cat.id}')">${cat.label}</button>
-  `).join('');
-
-  // 內容
-  mainContent.innerHTML = MENU.map(cat => `
-    <div class="menu-section ${cat.id === currentTab ? 'active' : ''}" id="section-${cat.id}">
-      ${cat.note ? `<div class="section-note">📌 ${cat.note}</div>` : ''}
-      <div class="item-grid">
-        ${cat.items.map(item => {
-          const key = getKey(cat.id, item.name);
-          const q = qty[key] || 0;
-          return `
-          <div class="item-card ${q > 0 ? 'has-qty' : ''}" data-key="${key}">
-            <div class="item-name">${item.name}</div>
-            <div class="item-price">${item.price}</div>
-            <div class="qty-controls">
-              <button class="qty-btn minus" onclick="setQty('${cat.id}', '${item.name.replace(/'/g, "\\'")}', ${q - 1})">−</button>
-              <span class="qty-display">${q}</span>
-              <button class="qty-btn plus" onclick="setQty('${cat.id}', '${item.name.replace(/'/g, "\\'")}', ${q + 1})">+</button>
+    <div class="app-wrapper">
+        <!-- ================= 左側/主要 內容區 ================= -->
+        <main class="main-content">
+            <div class="header-container">
+                <header>美而美（南興店）點餐機</header>
+                <!-- 分類滑動/換行區 -->
+                <div class="category-tabs" id="categoryTabs"></div>
             </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-  `).join('');
-}
 
-function renderCart() {
-  const mainContent = document.getElementById('mainContent');
-  const cartItems = getCartItems();
-  const total = getTotal();
+            <!-- 餐點列表區 (網格或直列) -->
+            <div class="item-list" id="itemList"></div>
+        </main>
 
-  if (cartItems.length === 0) {
-    mainContent.innerHTML = `
-      <div class="cart-section active">
-        <div class="cart-empty">
-          <div class="cart-empty-icon">🛒</div>
-          <div>尚未點餐</div>
-        </div>
-      </div>`;
-    return;
-  }
-
-  mainContent.innerHTML = `
-    <div class="cart-section active">
-      ${cartItems.map(ci => `
-        <div class="cart-item">
-          <div class="cart-item-info">
-            <div class="cart-item-name">${ci.itemName}</div>
-            <div class="cart-item-detail">$${ci.price} × ${ci.qty}</div>
-          </div>
-          <div class="cart-item-subtotal">$${ci.subtotal}</div>
-        </div>
-      `).join('')}
-      <div class="cart-total-row">
-        <div class="cart-total-label">合計</div>
-        <div class="cart-total-amount">$${total}</div>
-      </div>
-    </div>`;
-}
-
-function switchTab(tabId) {
-  currentTab = tabId;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.menu-section').forEach(s => s.classList.remove('active'));
-  const activeTab = document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`);
-  if (activeTab) {
-    activeTab.classList.add('active');
-    activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  }
-  const section = document.getElementById(`section-${tabId}`);
-  if (section) section.classList.add('active');
-}
-
-function switchView(view) {
-  currentView = view;
-  document.getElementById('navMenu').classList.toggle('active', view === 'menu');
-  document.getElementById('navCart').classList.toggle('active', view === 'cart');
-  document.getElementById('tabsWrapper').style.display = view === 'menu' ? 'block' : 'none';
-
-  if (view === 'menu') {
-    renderMenu();
-  } else {
-    renderCart();
-  }
-}
-
-function clearAll() {
-  if (!confirm('確定要清空所有品項？')) return;
-  Object.keys(qty).forEach(k => delete qty[k]);
-  updateTotal();
-  updateBadge();
-  if (currentView === 'menu') renderMenu();
-  else renderCart();
-}
-
-// ===== 初始化 =====
-function init() {
-  renderMenu();
-
- }, { name: '法國吐司', price: 30 }, { name: '豬排吐司', price: 30 },
-      { name: '鱈魚吐司', price: 35 }, { name: '花枝吐司', price: 35 },
-      { name: '咔啦雞腿吐司（原味）', price: 45 }, { name: '咔啦雞腿吐司（辣味）', price: 45 },
-      { name: '升級丹麥', price: 20 },
-    ]
-  },
-  {
-    id: 'egg', label: '🥞 蛋餅',
-    items: [
-      { name: '原味蛋餅', price: 25 }, { name: '肉鬆蛋餅', price: 30 }, { name: '火腿蛋餅', price: 30 },
-      { name: '玉米蛋餅', price: 30 }, { name: '蔬菜蛋餅', price: 30 }, { name: '起司蛋餅', price: 35 },
-      { name: '熱狗蛋餅', price: 35 }, { name: '培根蛋餅', price: 35 }, { name: '鮪魚蛋餅', price: 35 },
-      { name: '燻雞蛋餅', price: 40 }, { name: '泡菜蛋餅', price: 40 }, { name: '蘿蔔糕蛋餅', price: 40 },
-      { name: '豬排蛋餅', price: 45 }, { name: '菲力雞腿蛋餅', price: 50 }, { name: '咔啦雞腿蛋餅', price: 60 },
-    ]
-  },
-  {
-    id: 'thick', label: '🍞 厚片',
-    items: [
-      { name: '巧克力厚片', price: 20 }, { name: '花生厚片', price: 20 }, { name: '草莓厚片', price: 20 },
-      { name: '奶酥厚片', price: 20 }, { name: '奶油厚片', price: 20 }, { name: '煉乳厚片', price: 20 },
-      { name: '火腿玉米厚片', price: 30 }, { name: '玉米起司厚片', price: 35 },
-      { name: '鮪魚玉米厚片', price: 35 }, { name: '鮪魚起司厚片', price: 40 },
-    ]
-  },
-  {
-    id: 'box', label: '🧇 盒酥',
-    items: [
-      { name: '巧克力盒酥', price: 20 }, { name: '草莓盒酥', price: 20 }, { name: '花生盒酥', price: 20 },
-      { name: '奶油盒酥', price: 20 }, { name: '煉乳盒酥', price: 20 }, { name: '奶酥盒酥', price: 20 },
-      { name: '火腿盒酥', price: 20 }, { name: '玉米盒酥', price: 25 }, { name: '起司盒酥', price: 25 },
-      { name: '鮪魚盒酥', price: 25 }, { name: '玉米鮪魚盒酥', price: 30 }, { name: '玉米起司盒酥', price: 30 },
-      { name: '鮪魚起司盒酥', price: 35 }, { name: '燻雞盒酥', price: 30 }, { name: '薯皮盒酥', price: 45 },
-    ]
-  },
-  {
-    id: 'club', label: '🌯 總匯',
-    items: [
-      { name: '豬排總匯', price: 60 }, { name: '總匯吐司', price: 55 },
-      { name: '咔啦雞腿總匯', price: 65 }, { name: '菲力雞腿總匯', price: 65 },
-    ]
-  },
-  {
-    id: 'fried', label: '🍟 現炸',
-    items: [
-      { name: '香酥雞柳條', price: 10 }, { name: '薯餅', price: 15 }, { name: '薯條', price: 20 },
-      { name: '麥克雞塊', price: 25 }, { name: '小雞球', price: 25 },
-    ]
-  },
-  {
-    id: 'light', label: '🌮 輕食',
-    items: [
-      { name: '果醬鬆餅（巧克力）', price: 25 }, { name: '果醬鬆餅（草莓）', price: 25 },
-      { name: '果醬鬆餅（花生）', price: 25 }, { name: '果醬鬆餅（奶酥）', price: 25 },
-      { name: '果醬鬆餅（煉乳）', price: 25 }, { name: '蔬菜乳酪餅', price: 30 },
-      { name: '蛋肉鬆乳酪餅', price: 45 }, { name: '鮪魚玉米乳酪餅', price: 40 },
-    ]
-  },
-  {
-    id: 'hot', label: '🌭 熱食',
-    items: [
-      { name: '熱狗（3條）', price: 15 }, { name: '熱狗吐司蛋捲', price: 25 }, { name: '熱狗捲蛋（3條）', price: 30 },
-      { name: '蔥蛋', price: 15 }, { name: '玉米蛋', price: 25 }, { name: '小肉豆', price: 20 },
-      { name: '蘿蔔糕（2塊）', price: 25 }, { name: '蘿蔔糕（1塊）', price: 15 },
-      { name: '生煎包', price: 25 }, { name: '一口煎餃', price: 20 }, { name: '鍋貼', price: 25 },
-      { name: '香酥煎餃', price: 30 },
-    ]
-  },
-  {
-    id: 'noodle', label: '🍜 鍋燒麵',
-    items: [
-      { name: '意麵', price: 55 }, { name: '冬粉', price: 55 }, { name: '雞絲麵', price: 55 }, { name: '烏龍麵', price: 55 },
-      { name: '泡菜意麵', price: 70 }, { name: '泡菜冬粉', price: 70 }, { name: '泡菜雞絲麵', price: 70 }, { name: '泡菜烏龍麵', price: 70 },
-    ]
-  },
-  {
-    id: 'instant', label: '🍜 泡麵',
-    items: [
-      { name: '泡菜泡麵', price: 70 }, { name: '肉燥泡麵', price: 55 }, { name: '牛肉湯泡麵', price: 55 },
-    ]
-  },
-  {
-    id: 'pasta', label: '🍝 義大利麵',
-    items: [
-      { name: '茄汁義大利麵', price: 40 }, { name: '黑胡椒義大利麵', price: 40 },
-    ]
-  },
-  {
-    id: 'porridge', label: '🍲 粥品',
-    items: [
-      { name: '台式鹹粥', price: 50 }, { name: '皮蛋瘦肉粥', price: 60 },
-    ]
-  },
-  {
-    id: 'meat', label: '🥩 肉排單點',
-    items: [
-      { name: '漢堡肉', price: 10 }, { name: '燻雞肉', price: 15 }, { name: '豬排', price: 20 },
-      { name: '香烤雞腿', price: 25 }, { name: '菲力雞排', price: 25 }, { name: '鱈魚', price: 25 },
-      { name: '蝦肉', price: 25 }, { name: '花枝', price: 25 }, { name: '咔啦雞腿肉', price: 35 },
-    ]
-  },
-  {
-    id: 'drink', label: '🥤 飲料', note: '升級大杯 +$5',
-    items: [
-      { name: '紅茶', price: 10 }, { name: '豆漿', price: 10 }, { name: '奶茶', price: 15 },
-      { name: '咖啡牛奶', price: 15 }, { name: '可可', price: 15 }, { name: '冰可樂', price: 15 },
-      { name: '柳橙汁', price: 15 }, { name: '檸檬紅茶', price: 15 }, { name: '水蜜桃汁', price: 15 },
-      { name: '百香果汁', price: 15 }, { name: '鮮奶茶', price: 20 }, { name: '鮮奶咖啡（大杯）', price: 30 },
-      { name: '升級大杯', price: 5 },
-    ]
-  },
-  {
-    id: 'winter', label: '❄️ 冬季限定',
-    items: [
-      { name: '玉米濃湯（小杯）', price: 15 }, { name: '玉米濃湯（大杯）', price: 25 },
-    ]
-  },
-];
-
-// ===== 狀態 =====
-const qty = {}; // itemKey -> quantity
-let currentView = 'menu';
-let currentTab = MENU[0].id;
-
-// ===== 計算 =====
-function getKey(catId, itemName) { return `${catId}__${itemName}`; }
-
-function getTotal() {
-  return Object.entries(qty).reduce((sum, [key, q]) => {
-    const [catId, itemName] = key.split('__');
-    const cat = MENU.find(c => c.id === catId);
-    if (!cat) return sum;
-    const item = cat.items.find(i => i.name === itemName);
-    if (!item) return sum;
-    return sum + item.price * q;
-  }, 0);
-}
-
-function getCartItems() {
-  return Object.entries(qty)
-    .filter(([_, q]) => q > 0)
-    .map(([key, q]) => {
-      const [catId, itemName] = key.split('__');
-      const cat = MENU.find(c => c.id === catId);
-      const item = cat.items.find(i => i.name === itemName);
-      return { catId, itemName, price: item.price, qty: q, subtotal: item.price * q };
-    });
-}
-
-function getTotalItemCount() {
-  return Object.values(qty).reduce((s, q) => s + q, 0);
-}
-
-// ===== UI 更新 =====
-function updateTotal() {
-  document.getElementById('totalAmount').textContent = getTotal();
-}
-
-function updateBadge() {
-  const count = getTotalItemCount();
-  const badge = document.getElementById('cartBadge');
-  if (count > 0) {
-    badge.textContent = count > 99 ? '99+' : count;
-    badge.classList.add('show');
-  } else {
-    badge.classList.remove('show');
-  }
-}
-
-function setQty(catId, itemName, val) {
-  const key = getKey(catId, itemName);
-  qty[key] = Math.max(0, val);
-  updateTotal();
-  updateBadge();
-  // Update the specific card
-  const card = document.querySelector(`[data-key="${key}"]`);
-  if (card) {
-    const display = card.querySelector('.qty-display');
-    if (display) display.textContent = qty[key];
-    if (qty[key] > 0) card.classList.add('has-qty');
-    else card.classList.remove('has-qty');
-  }
-}
-
-// ===== 渲染菜單 =====
-function renderMenu() {
-  const tabsContainer = document.getElementById('tabsContainer');
-  const mainContent = document.getElementById('mainContent');
-
-  // 標籤
-  tabsContainer.innerHTML = MENU.map(cat => `
-    <button class="tab ${cat.id === currentTab ? 'active' : ''}" onclick="switchTab('${cat.id}')">${cat.label}</button>
-  `).join('');
-
-  // 內容
-  mainContent.innerHTML = MENU.map(cat => `
-    <div class="menu-section ${cat.id === currentTab ? 'active' : ''}" id="section-${cat.id}">
-      ${cat.note ? `<div class="section-note">📌 ${cat.note}</div>` : ''}
-      <div class="item-grid">
-        ${cat.items.map(item => {
-          const key = getKey(cat.id, item.name);
-          const q = qty[key] || 0;
-          return `
-          <div class="item-card ${q > 0 ? 'has-qty' : ''}" data-key="${key}">
-            <div class="item-name">${item.name}</div>
-            <div class="item-price">${item.price}</div>
-            <div class="qty-controls">
-              <button class="qty-btn minus" onclick="setQty('${cat.id}', '${item.name.replace(/'/g, "\\'")}', ${q - 1})">−</button>
-              <span class="qty-display">${q}</span>
-              <button class="qty-btn plus" onclick="setQty('${cat.id}', '${item.name.replace(/'/g, "\\'")}', ${q + 1})">+</button>
+        <!-- ================= 右側 常駐購物車 (平板/電腦版) ================= -->
+        <aside class="desktop-cart">
+            <div class="desktop-cart-header">目前訂單明細</div>
+            <div class="cart-items" id="desktopCartItems">
+                <!-- 由 JS 渲染 -->
             </div>
-          </div>`;
-        }).join('')}
-      </div>
+            <div class="cart-footer">
+                <div class="cart-total-row">
+                    <span>總計金額</span>
+                    <span style="color: var(--secondary);">$<span id="desktopCartTotalPrice">0</span></span>
+                </div>
+                <button class="copy-btn" onclick="copyOrder()">📋 一鍵複製訂單 (傳給老闆)</button>
+                <button class="clear-btn" onclick="clearCart()">清空購物車</button>
+            </div>
+        </aside>
     </div>
-  `).join('');
-}
 
-function renderCart() {
-  const mainContent = document.getElementById('mainContent');
-  const cartItems = getCartItems();
-  const total = getTotal();
-
-  if (cartItems.length === 0) {
-    mainContent.innerHTML = `
-      <div class="cart-section active">
-        <div class="cart-empty">
-          <div class="cart-empty-icon">🛒</div>
-          <div>尚未點餐</div>
+    <!-- ================= 底部懸浮購物車 (手機版專用) ================= -->
+    <div class="bottom-bar" id="bottomBar" onclick="openMobileCartModal()" style="display: none;">
+        <div class="cart-info">
+            <div class="cart-badge" id="bottomCount">0</div>
+            <span>查看購物車</span>
         </div>
-      </div>`;
-    return;
-  }
+        <div class="bottom-total">$<span id="bottomTotal">0</span></div>
+    </div>
 
-  mainContent.innerHTML = `
-    <div class="cart-section active">
-      ${cartItems.map(ci => `
-        <div class="cart-item">
-          <div class="cart-item-info">
-            <div class="cart-item-name">${ci.itemName}</div>
-            <div class="cart-item-detail">$${ci.price} × ${ci.qty}</div>
-          </div>
-          <div class="cart-item-subtotal">$${ci.subtotal}</div>
+    <!-- ================= 互動 Modal 區域 ================= -->
+    
+    <!-- 選擇加料與數量 Modal (手機底部/平板居中) -->
+    <div class="modal-overlay" id="itemModal" onclick="closeModal(event, 'itemModal')">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="modal-title" id="modalTitle">餐點名稱</div>
+            
+            <div id="modalAddons" class="addon-group"></div>
+
+            <div class="qty-group">
+                <button class="qty-btn" onclick="changeQty(-1)">-</button>
+                <input type="text" id="modalQty" class="qty-input" value="1" readonly>
+                <button class="qty-btn" onclick="changeQty(1)">+</button>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeModal(null, 'itemModal')">取消</button>
+                <button class="btn btn-confirm" onclick="confirmAddToCart()">加入清單 $<span id="modalCurrentTotal">0</span></button>
+            </div>
         </div>
-      `).join('')}
-      <div class="cart-total-row">
-        <div class="cart-total-label">合計</div>
-        <div class="cart-total-amount">$${total}</div>
-      </div>
-    </div>`;
-}
+    </div>
 
-function switchTab(tabId) {
-  currentTab = tabId;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.menu-section').forEach(s => s.classList.remove('active'));
-  const activeTab = document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`);
-  if (activeTab) {
-    activeTab.classList.add('active');
-    activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  }
-  const section = document.getElementById(`section-${tabId}`);
-  if (section) section.classList.add('active');
-}
+    <!-- 手機版專屬購物車 Modal -->
+    <div class="modal-overlay" id="mobileCartModal" onclick="closeModal(event, 'mobileCartModal')">
+        <div class="cart-modal" onclick="event.stopPropagation()">
+            <div class="cart-header">
+                <span class="cart-title">購物車明細</span>
+                <button class="close-btn" onclick="closeModal(null, 'mobileCartModal')">✕</button>
+            </div>
+            <div class="cart-items" id="mobileCartItems"></div>
+            <div class="cart-footer">
+                <div class="cart-total-row">
+                    <span>總金額</span>
+                    <span style="color: var(--secondary);">$<span id="mobileCartTotalPrice">0</span></span>
+                </div>
+                <button class="copy-btn" onclick="copyOrder()">📋 一鍵複製訂單</button>
+                <button class="clear-btn" onclick="clearCart()">清空購物車</button>
+            </div>
+        </div>
+    </div>
 
-function switchView(view) {
-  currentView = view;
-  document.getElementById('navMenu').classList.toggle('active', view === 'menu');
-  document.getElementById('navCart').classList.toggle('active', view === 'cart');
-  document.getElementById('tabsWrapper').style.display = view === 'menu' ? 'block' : 'none';
+    <script>
+        // --- 完整菜單資料庫 ---
+        const menuData = [
+            {
+                category: "🥪 漢堡類",
+                addons: [{ name: "加蛋", price: 15 }, { name: "加起司", price: 10 }],
+                items: [
+                    { name: "漢堡", price: 25 }, { name: "蛋堡", price: 30 }, { name: "鮪魚堡", price: 25 },
+                    { name: "雞肉堡", price: 30 }, { name: "燻雞堡", price: 30 }, { name: "花枝堡", price: 35 },
+                    { name: "鱈魚堡", price: 35 }, { name: "蝦肉堡", price: 35 }, { name: "豬排堡", price: 35 },
+                    { name: "香烤雞腿堡", price: 35 }, { name: "菲力雞腿堡", price: 35 }, { name: "咔啦雞腿堡(原味)", price: 45 }, { name: "咔啦雞腿堡(辣味)", price: 45 }
+                ]
+            },
+            {
+                category: "🍞 烤吐司",
+                addons: [{ name: "升級丹麥吐司", price: 20 }],
+                items: [
+                    { name: "巧克力吐司", price: 10 }, { name: "草莓吐司", price: 10 }, { name: "花生吐司", price: 10 },
+                    { name: "奶油吐司(鹹)", price: 10 }, { name: "煉乳吐司(甜)", price: 10 }, { name: "奶酥吐司", price: 15 },
+                    { name: "肉鬆吐司", price: 15 }, { name: "玉米吐司", price: 15 }, { name: "火腿吐司", price: 15 },
+                    { name: "燻雞吐司", price: 20 }, { name: "培根吐司", price: 20 }, { name: "鮪魚吐司", price: 20 },
+                    { name: "煎蛋吐司", price: 25 }, { name: "法國吐司", price: 30 }, { name: "豬排吐司", price: 30 },
+                    { name: "鱈魚吐司", price: 35 }, { name: "花枝吐司", price: 35 }, { name: "咔啦雞腿吐司(原/辣)", price: 45 }
+                ]
+            },
+            { category: "🥞 蛋餅", items: [{ name: "原味蛋餅", price: 25 }, { name: "肉鬆蛋餅", price: 30 }, { name: "火腿蛋餅", price: 30 }, { name: "玉米蛋餅", price: 30 }, { name: "蔬菜蛋餅", price: 30 }, { name: "起司蛋餅", price: 35 }, { name: "熱狗蛋餅", price: 35 }, { name: "培根蛋餅", price: 35 }, { name: "鮪魚蛋餅", price: 35 }, { name: "燻雞蛋餅", price: 40 }, { name: "泡菜蛋餅", price: 40 }, { name: "蘿蔔糕蛋餅", price: 40 }, { name: "豬排蛋餅", price: 45 }, { name: "菲力雞腿蛋餅", price: 50 }, { name: "咔啦雞腿蛋餅", price: 60 }] },
+            { category: "🍞 厚片", items: [{ name: "巧克力厚片", price: 20 }, { name: "花生厚片", price: 20 }, { name: "草莓厚片", price: 20 }, { name: "奶酥厚片", price: 20 }, { name: "奶油厚片(鹹)", price: 20 }, { name: "煉乳厚片(甜)", price: 20 }, { name: "火腿玉米厚片", price: 30 }, { name: "玉米起司厚片", price: 35 }, { name: "鮪魚玉米厚片", price: 35 }, { name: "鮪魚起司厚片", price: 40 }] },
+            { category: "🧇 盒酥", items: [{ name: "巧克力盒酥", price: 20 }, { name: "草莓盒酥", price: 20 }, { name: "花生盒酥", price: 20 }, { name: "奶油盒酥(鹹)", price: 20 }, { name: "煉乳盒酥(甜)", price: 20 }, { name: "奶酥盒酥", price: 20 }, { name: "火腿盒酥", price: 20 }, { name: "玉米盒酥", price: 25 }, { name: "起司盒酥", price: 25 }, { name: "鮪魚盒酥", price: 25 }, { name: "燻雞盒酥", price: 30 }, { name: "玉米鮪魚盒酥", price: 30 }, { name: "玉米起司盒酥", price: 30 }, { name: "鮪魚起司盒酥", price: 35 }, { name: "薯皮盒酥", price: 45 }] },
+            { category: "🌯 總匯", items: [{ name: "總匯吐司", price: 55 }, { name: "豬排總匯", price: 60 }, { name: "咔啦雞腿總匯", price: 65 }, { name: "菲力雞腿總匯", price: 65 }] },
+            { category: "🍟 炸物", items: [{ name: "香酥雞柳條", price: 10 }, { name: "薯餅", price: 15 }, { name: "薯條", price: 20 }, { name: "麥克雞塊", price: 25 }, { name: "小雞球", price: 25 }] },
+            { category: "🌮 輕食", items: [{ name: "果醬鬆餅(巧/草/花/奶/煉)", price: 25 }, { name: "蔬菜乳酪餅", price: 30 }, { name: "鮪魚玉米乳酪餅", price: 40 }, { name: "蛋肉鬆乳酪餅", price: 45 }] },
+            { category: "🌭 熱食", items: [{ name: "熱狗(3條)", price: 15 }, { name: "蔥蛋", price: 15 }, { name: "蘿蔔糕(單塊)", price: 15 }, { name: "小肉豆", price: 20 }, { name: "一口煎餃", price: 20 }, { name: "熱狗吐司蛋捲", price: 25 }, { name: "玉米蛋", price: 25 }, { name: "蘿蔔糕(2塊)", price: 25 }, { name: "生煎包", price: 25 }, { name: "鍋貼", price: 25 }, { name: "熱狗捲蛋(3條)", price: 30 }, { name: "香酥煎餃", price: 30 }] },
+            { category: "🍜 麵食", items: [{ name: "茄汁義大利麵", price: 40 }, { name: "黑胡椒義大利麵", price: 40 }, { name: "意麵", price: 55 }, { name: "冬粉", price: 55 }, { name: "雞絲麵", price: 55 }, { name: "烏龍麵", price: 55 }, { name: "肉燥泡麵", price: 55 }, { name: "牛肉湯泡麵", price: 55 }, { name: "泡菜意麵", price: 70 }, { name: "泡菜冬粉", price: 70 }, { name: "泡菜雞絲麵", price: 70 }, { name: "泡菜烏龍麵", price: 70 }, { name: "泡菜泡麵", price: 70 }] },
+            { category: "🍲 粥品", items: [{ name: "台式鹹粥", price: 50 }, { name: "皮蛋瘦肉粥", price: 60 }] },
+            { category: "🥩 單點", items: [{ name: "漢堡肉", price: 10 }, { name: "燻雞肉", price: 15 }, { name: "豬排", price: 20 }, { name: "香烤雞腿", price: 25 }, { name: "菲力雞排", price: 25 }, { name: "鱈魚", price: 25 }, { name: "蝦肉", price: 25 }, { name: "花枝", price: 25 }, { name: "咔啦雞腿肉", price: 35 }] },
+            {
+                category: "🥤 飲品與湯",
+                addons: [{ name: "溫/熱", price: 0 }, { name: "升級大杯", price: 5 }],
+                items: [
+                    { name: "紅茶", price: 10 }, { name: "豆漿", price: 10 }, { name: "奶茶", price: 15 }, { name: "咖啡牛奶", price: 15 }, { name: "可可", price: 15 }, { name: "冰可樂", price: 15 }, { name: "柳橙汁", price: 15 }, { name: "檸檬紅茶", price: 15 }, { name: "水蜜桃汁", price: 15 }, { name: "百香果汁", price: 15 }, { name: "玉米濃湯(小)", price: 15 }, { name: "鮮奶茶", price: 20 }, { name: "玉米濃湯(大)", price: 25 }, { name: "鮮奶咖啡(大杯)", price: 30 }
+                ]
+            }
+        ];
 
-  if (view === 'menu') {
-    renderMenu();
-  } else {
-    renderCart();
-  }
-}
+        let cart = [];
+        let tempItem = null; 
 
-function clearAll() {
-  if (!confirm('確定要清空所有品項？')) return;
-  Object.keys(qty).forEach(k => delete qty[k]);
-  updateTotal();
-  updateBadge();
-  if (currentView === 'menu') renderMenu();
-  else renderCart();
-}
+        // --- 初始化 UI ---
+        function init() {
+            renderCategoryTabs();
+            renderItems(0);
+            updateCartDisplay(); // 確保初始狀態桌面版有顯示"空的購物車"
+        }
 
-// ===== 初始化 =====
-function init() {
-  renderMenu();
+        // 渲染分類列
+        function renderCategoryTabs() {
+            const tabsContainer = document.getElementById('categoryTabs');
+            tabsContainer.innerHTML = '';
+            menuData.forEach((cat, index) => {
+                const btn = document.createElement('button');
+                btn.className = `category-tab ${index === 0 ? 'active' : ''}`;
+                // 簡化分類文字 (移除表情符號前的字)
+                btn.innerText = cat.category.includes(' ') ? cat.category.split(' ')[1] : cat.category.substring(2);
+                btn.onclick = () => {
+                    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderItems(index);
+                    
+                    // 手機版點擊後，菜單列表自動滾回頂部
+                    const itemList = document.getElementById('itemList');
+                    if (window.innerWidth < 768) {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        itemList.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                };
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        // 渲染餐點清單
+        function renderItems(index) {
+            const listContainer = document.getElementById('itemList');
+            listContainer.innerHTML = '';
+            const category = menuData[index];
+
+            category.items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                div.innerHTML = `
+                    <span class="item-name">${item.name}</span>
+                    <span class="item-price">$${item.price}</span>
+                `;
+                div.onclick = () => openItemModal(item, category.addons || []);
+                listContainer.appendChild(div);
+            });
+        }
+
+        // --- 點餐加料 Modal 邏輯 ---
+        function openItemModal(item, addons) {
+            tempItem = { ...item, selectedAddons: [], qty: 1 };
+            document.getElementById('modalTitle').innerText = item.name;
+            document.getElementById('modalQty').value = 1;
+            
+            const addonsContainer = document.getElementById('modalAddons');
+            addonsContainer.innerHTML = '';
+            
+            if (addons.length > 0) {
+                addons.forEach((addon, idx) => {
+                    addonsContainer.innerHTML += `
+                        <label class="addon-label">
+                            <input type="checkbox" onchange="updateModalPrice(this, ${addon.price}, '${addon.name}')"> 
+                            ${addon.name} <span style="color:#888; margin-left:5px; font-size:0.95rem;">${addon.price > 0 ? '(+$' + addon.price + ')' : ''}</span>
+                        </label>
+                    `;
+                });
+            }
+
+            updateModalDisplayPrice();
+            document.getElementById('itemModal').style.display = 'flex';
+        }
+
+        function changeQty(amount) {
+            let qty = parseInt(document.getElementById('modalQty').value);
+            qty += amount;
+            if (qty < 1) qty = 1;
+            document.getElementById('modalQty').value = qty;
+            tempItem.qty = qty;
+            updateModalDisplayPrice();
+        }
+
+        function updateModalPrice(checkbox, price, name) {
+            if (checkbox.checked) {
+                tempItem.selectedAddons.push({ name, price });
+            } else {
+                tempItem.selectedAddons = tempItem.selectedAddons.filter(a => a.name !== name);
+            }
+            updateModalDisplayPrice();
+        }
+
+        function updateModalDisplayPrice() {
+            let addonTotal = tempItem.selectedAddons.reduce((sum, a) => sum + a.price, 0);
+            let total = (tempItem.price + addonTotal) * tempItem.qty;
+            document.getElementById('modalCurrentTotal').innerText = total;
+        }
+
+        function confirmAddToCart() {
+            cart.push(tempItem);
+            updateCartDisplay();
+            closeModal(null, 'itemModal');
+            
+            // 動畫回饋：手機版彈跳 bottom bar
+            if(window.innerWidth < 768) {
+                const bottomBar = document.getElementById('bottomBar');
+                bottomBar.style.transform = 'scale(1.05)';
+                setTimeout(() => bottomBar.style.transform = 'scale(1)', 200);
+            }
+        }
+
+        // --- 購物車與 UI 同步邏輯 (手機/平板共用) ---
+        function updateCartDisplay() {
+            let grandTotal = 0;
+            let totalQty = 0;
+            let cartHtml = '';
+
+            if (cart.length === 0) {
+                cartHtml = '<div style="text-align:center; color:#999; margin-top:50px; font-size: 1.1rem;">目前購物車是空的唷</div>';
+                // 手機版隱藏 bottom bar
+                document.getElementById('bottomBar').style.display = 'none';
+            } else {
+                // 手機版顯示 bottom bar
+                document.getElementById('bottomBar').style.display = 'flex';
+                
+                cart.forEach((item, index) => {
+                    let addonTotal = item.selectedAddons.reduce((sum, a) => sum + a.price, 0);
+                    let itemTotal = (item.price + addonTotal) * item.qty;
+                    grandTotal += itemTotal;
+                    totalQty += item.qty;
+
+                    let addonText = item.selectedAddons.length > 0 
+                        ? `<div class="cart-item-details">${item.selectedAddons.map(a => a.name).join(', ')}</div>` 
+                        : '';
+
+                    cartHtml += `
+                        <div class="cart-item">
+                            <button class="remove-btn" onclick="removeFromCart(${index})">刪除</button>
+                            <div class="cart-item-title">${item.name} × ${item.qty}</div>
+                            ${addonText}
+                            <div class="cart-item-price">$${itemTotal}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            // 更新手機版 Bottom Bar
+            document.getElementById('bottomCount').innerText = totalQty;
+            document.getElementById('bottomTotal').innerText = grandTotal;
+            
+            // 更新手機版 Modal 內的購物車
+            document.getElementById('mobileCartItems').innerHTML = cartHtml;
+            document.getElementById('mobileCartTotalPrice').innerText = grandTotal;
+
+            // 更新平板版側邊欄購物車
+            document.getElementById('desktopCartItems').innerHTML = cartHtml;
+            document.getElementById('desktopCartTotalPrice').innerText = grandTotal;
+        }
+
+        function openMobileCartModal() {
+            document.getElementById('mobileCartModal').style.display = 'flex';
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartDisplay();
+            if(cart.length === 0 && window.innerWidth < 768) {
+                closeModal(null, 'mobileCartModal'); // 手機版清空時自動關閉
+            }
+        }
+
+        function clearCart() {
+            if(cart.length === 0) return;
+            if(confirm("確定要清空購物車嗎？")) {
+                cart = [];
+                updateCartDisplay();
+                closeModal(null, 'mobileCartModal');
+            }
+        }
+
+        function closeModal(event, modalId) {
+            if (event && event.target.id !== modalId) return; // 點擊半透明背景才關閉
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // --- 核心功能：複製訂單轉為文字 ---
+        function copyOrder() {
+            if (cart.length === 0) return alert('購物車內沒有餐點喔！');
+
+            let orderText = "老闆您好，我要訂餐：\n-----------------\n";
+            let total = 0;
+
+            cart.forEach(item => {
+                let addonTotal = item.selectedAddons.reduce((sum, a) => sum + a.price, 0);
+                let itemTotal = (item.price + addonTotal) * item.qty;
+                total += itemTotal;
+
+                let addonStr = item.selectedAddons.length > 0 
+                    ? ` (${item.selectedAddons.map(a => a.name).join(', ')})` 
+                    : '';
+
+                orderText += `${item.name}${addonStr} x ${item.qty} = $${itemTotal}\n`;
+            });
+
+            orderText += `-----------------\n總共：$${total} 元\n謝謝老闆！`;
+
+            // 使用 Clipboard API，若失敗則用備用方案
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(orderText).then(() => {
+                    alert('✅ 訂單已複製！\n您可以直接前往 LINE 貼上並傳送給老闆。');
+                }).catch(err => fallbackCopyTextToClipboard(orderText));
+            } else {
+                fallbackCopyTextToClipboard(orderText);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            var textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0"; textArea.style.left = "0"; textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('✅ 訂單已複製！\n您可以直接前往 LINE 貼上並傳送給老闆。');
+            } catch (err) {
+                alert('複製失敗，請手動複製喔！');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // 啟動程式
+        init();
+    </script>
+</body>
+</html>
 
